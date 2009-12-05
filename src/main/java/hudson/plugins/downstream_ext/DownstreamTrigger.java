@@ -74,13 +74,13 @@ public class DownstreamTrigger extends Recorder implements DependecyDeclarer, Ma
     /**
      * Threshold status to trigger other builds.
      */
-    private final Result threshold;
+    private Result threshold = Result.SUCCESS;
     
     private final boolean onlyIfSCMChanges;
 
     @DataBoundConstructor
-    public DownstreamTrigger(String childProjects, boolean evenIfUnstable, boolean onlyIfSCMChanges) {
-        this(childProjects,evenIfUnstable ? Result.UNSTABLE : Result.SUCCESS, onlyIfSCMChanges);
+    public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges) {
+        this(childProjects, resultFromString(threshold), onlyIfSCMChanges);
     }
 
     public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges) {
@@ -89,6 +89,17 @@ public class DownstreamTrigger extends Recorder implements DependecyDeclarer, Ma
         this.childProjects = childProjects;
         this.threshold = threshold;
         this.onlyIfSCMChanges = onlyIfSCMChanges;
+    }
+    
+    private static Result resultFromString(String s) {
+    	Result result = Result.fromString(s);
+    	// fromString returns FAILURE for unknown strings instead of
+    	// IllegalArgumentException. Don't know why the author thought that this
+    	// is useful ...
+    	if (!result.toString().equals(s)) {
+    		throw new IllegalArgumentException("Unknown result type '" + s + "'");
+    	}
+    	return result;
     }
 
     public String getChildProjectsValue() {
@@ -209,6 +220,11 @@ public class DownstreamTrigger extends Recorder implements DependecyDeclarer, Ma
 
     @Extension
     public static class DescriptorImpl extends BuildTrigger.DescriptorImpl {
+    	
+    	public static final String[] THRESHOLD_VALUES = {
+    		Result.SUCCESS.toString(), Result.UNSTABLE.toString(), Result.FAILURE.toString()
+    	};
+    	
         @Override
 		public String getDisplayName() {
             return hudson.plugins.downstream_ext.Messages.DownstreamTrigger_DisplayName();
@@ -223,7 +239,7 @@ public class DownstreamTrigger extends Recorder implements DependecyDeclarer, Ma
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return new DownstreamTrigger(
                 formData.getString("childProjects"),
-                formData.has("evenIfUnstable") && formData.getBoolean("evenIfUnstable"),
+                formData.getString("threshold"),
                 formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"));
         }
 

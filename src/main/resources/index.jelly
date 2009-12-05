@@ -4,5 +4,5 @@
   Since we don't really have anything dynamic here, let's just use static HTML. 
 -->
 <div>
-  This plugin allows for extended configuration of downstream projects.
+  This plugin provides extended options for triggering downstream projects.
 </div>

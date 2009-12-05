@@ -23,18 +23,19 @@ THE SOFTWARE.
 -->
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-	<f:entry title="${%Projects to build}">
-	  <f:textbox name="downstreamTrigger.childProjects" value="${instance.childProjectsValue}"
+  <f:entry title="${%Projects to build}">
+	<f:textbox name="downstreamTrigger.childProjects" value="${instance.childProjectsValue}"
                checkUrl="'descriptorByName/DownstreamTrigger/check?value='+encodeURIComponent(this.value)"/>
-	</f:entry>
-  <j:if test="${descriptor.showEvenIfUnstableOption(targetType)}">
-    <f:entry title="">
-      <f:checkbox id="downstreamTrigger.evenIfUnstable" name="downstreamTrigger.evenIfUnstable" checked="${instance.threshold.toString()=='UNSTABLE'}" />
-      <label for="downstreamTrigger.evenIfUnstable">${%Trigger even if the build is unstable}</label>
-    </f:entry>
-  </j:if>
+  </f:entry>
+  <f:entry title="${%Trigger threshold}" description="${%Trigger downstream job if build result is x or better}">
+       <select class="setting-input" name="descriptor.threshold">
+       <j:forEach var="value" items="${descriptor.THRESHOLD_VALUES}">
+          <f:option selected="${instance.threshold.toString()==value}">${value}</f:option>
+       </j:forEach>
+    </select>
+  </f:entry>
   <f:entry title="">
       <f:checkbox id="downstreamTrigger.onlyIfSCMChanges" name="downstreamTrigger.onlyIfSCMChanges" checked="${instance.onlyIfSCMChanges}" />
       <label for="downstreamTrigger.onlyIfSCMChanges">${%Trigger only if downstream project has SCM changes}</label>
-    </f:entry>
+  </f:entry>
 </j:jelly>

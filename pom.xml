@@ -4,15 +4,16 @@
 	<parent>
 		<groupId>org.jvnet.hudson.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>1.319</version>
+		<version>1.321</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<name>Downstream-Ext</name>
 	<description>
                 This plugin provides extended configuration for downstream builds.
-                At the moment it supports to skip triggering downstream jobs which
-                have no SCM changes.
+                Currently, it supports triggering if the build was a failure
+                or to skip triggering downstream jobs which have no SCM changes -
+                in addition to the options provided by the build-in downstream trigger.
 	</description>
 	<artifactId>downstream-ext</artifactId>
 	<packaging>hpi</packaging>
@@ -32,7 +33,7 @@
             <plugin>
                 <groupId>org.jvnet.hudson.tools</groupId>
                 <artifactId>maven-hpi-plugin</artifactId>
-                <version>1.45</version>
+                <version>1.46</version>
                 <extensions>true</extensions>
             </plugin>
             <!-- Make sure that we don't use any Java 1.6 dependencies -->
