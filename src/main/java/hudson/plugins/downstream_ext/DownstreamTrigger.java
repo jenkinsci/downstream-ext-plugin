@@ -25,9 +25,6 @@ package hudson.plugins.downstream_ext;
 
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.matrix.MatrixAggregatable;
-import hudson.matrix.MatrixAggregator;
-import hudson.matrix.MatrixBuild;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -39,16 +36,12 @@ import hudson.model.Items;
 import hudson.model.Job;
 import hudson.model.Project;
 import hudson.model.Result;
-import hudson.model.Run;
-import hudson.model.Cause.UpstreamCause;
 import hudson.model.listeners.ItemListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.BuildTrigger;
-import hudson.tasks.Messages;
+import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
-import hudson.tasks.Recorder;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,10 +54,11 @@ import org.kohsuke.stapler.StaplerRequest;
 /**
  * Triggers builds of other projects.
  *
- * Note that this class is in large parts copied & pasted from {@link BuildTrigger} (rev. 21890)
+ * This class was inspired by {@link BuildTrigger} (rev. 21890) -
+ * but has changed significantly in the mean time.
  */
 @SuppressWarnings("unchecked")
-public class DownstreamTrigger extends Recorder implements DependecyDeclarer, MatrixAggregatable {
+public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
 
     /**
      * Comma-separated list of other projects to be scheduled.
@@ -127,55 +121,49 @@ public class DownstreamTrigger extends Recorder implements DependecyDeclarer, Ma
     
     @Override
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-        if(build.getResult().isBetterOrEqualTo(getThreshold())) {
-            PrintStream logger = listener.getLogger();
-            //Trigger downstream projects of the project defined by this trigger
-            List <AbstractProject> downstreamProjects = getChildProjects();
-                
-            for (AbstractProject p : downstreamProjects) {
-                if(p.isDisabled()) {
-                    logger.println(Messages.BuildTrigger_Disabled(p.getName()));
-                    continue;
-                }
-                
-                if(isOnlyIfSCMChanges() && !p.pollSCMChanges(listener)) {
-                	logger.println(hudson.plugins.downstream_ext.Messages.DownstreamTrigger_NoSCMChanges(p.getName()));
-                	continue;
-                }
-                // this is not completely accurate, as a new build might be triggered
-                // between these calls
-                String name = p.getName()+" #"+p.getNextBuildNumber();
-                if(p.scheduleBuild(new UpstreamCause((Run)build))) {
-                    logger.println(Messages.BuildTrigger_Triggering(name));
-                } else {
-                    logger.println(Messages.BuildTrigger_InQueue(name));
-                }
-            }
-        }
+//        if(build.getResult().isBetterOrEqualTo(getThreshold())) {
+//            PrintStream logger = listener.getLogger();
+//            //Trigger downstream projects of the project defined by this trigger
+//            List <AbstractProject> downstreamProjects = getChildProjects();
+//                
+//            for (AbstractProject p : downstreamProjects) {
+//                if(p.isDisabled()) {
+//                    logger.println(Messages.BuildTrigger_Disabled(p.getName()));
+//                    continue;
+//                }
+//                
+//                if(isOnlyIfSCMChanges() && !p.pollSCMChanges(listener)) {
+//                	logger.println(hudson.plugins.downstream_ext.Messages.DownstreamTrigger_NoSCMChanges(p.getName()));
+//                	continue;
+//                }
+//                // this is not completely accurate, as a new build might be triggered
+//                // between these calls
+//                String name = p.getName()+" #"+p.getNextBuildNumber();
+//                if(p.scheduleBuild(new UpstreamCause((Run)build))) {
+//                    logger.println(Messages.BuildTrigger_Triggering(name));
+//                } else {
+//                    logger.println(Messages.BuildTrigger_InQueue(name));
+//                }
+//            }
+//        }
 
+    	// nothing to do here. Everything happens in buildDependencyGraph
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
-    	// Must not do this, otherwise BuildTrigger would recognize the downstream
-    	// dep and start the downstream build, no matter what we do ourself.
-    	
-        //graph.addDependency(owner,getChildProjects());
+    	for (AbstractProject downstream : getChildProjects()) {
+    		graph.addDependency(new DownstreamDependency(owner, downstream, this));
+    	}
     }
 
     @Override
     public boolean needsToRunAfterFinalized() {
         return true;
-    }
-
-    @Override
-    public MatrixAggregator createAggregator(MatrixBuild build, Launcher launcher, BuildListener listener) {
-        return new MatrixAggregator(build, launcher, listener) {
-            @Override
-            public boolean endBuild() throws InterruptedException, IOException {
-                return perform(build, launcher, listener);
-            }
-        };
     }
 
     /**
