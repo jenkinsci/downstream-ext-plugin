@@ -1,0 +1,67 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.jvnet.hudson.plugins</groupId>
+		<artifactId>plugin</artifactId>
+		<version>1.341</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<name>Downstream-Ext</name>
+	<description>
+                This plugin provides extended configuration for downstream builds.
+                Currently, it supports triggering if the build was a failure
+                or to skip triggering downstream jobs which have no SCM changes -
+                in addition to the options provided by the build-in downstream trigger.
+	</description>
+	<artifactId>downstream-ext</artifactId>
+	<packaging>hpi</packaging>
+	<version>1.2</version>
+    <url>http://wiki.hudson-ci.org/display/HUDSON/Downstream-Ext+Plugin</url>
+    <developers>
+        <developer>
+            <id>kutzi</id>
+            <name>Christoph Kutzinski</name>
+            <email>kutzi@gmx.de</email>
+            <timezone>1</timezone>
+        </developer>
+    </developers>
+	
+	<build>
+        <plugins>
+            <plugin>
+                <groupId>org.jvnet.hudson.tools</groupId>
+                <artifactId>maven-hpi-plugin</artifactId>
+                <version>1.48</version>
+                <extensions>true</extensions>
+            </plugin>
+            <!-- Make sure that we don't use any Java 1.6 dependencies -->
+            <plugin>
+                <groupId>org.jvnet</groupId>
+                <artifactId>animal-sniffer</artifactId>
+                <version>1.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <signature>
+                                <groupId>org.jvnet.animal-sniffer</groupId>
+                                <artifactId>java1.5</artifactId>
+                                <version>1.0</version>
+                            </signature>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+  <scm>
+    <connection>scm:svn:https://guest@svn.dev.java.net/svn/hudson/tags/downstream-ext-1.2</connection>
+    <developerConnection>scm:svn:https://svn.dev.java.net/svn/hudson/tags/downstream-ext-1.2</developerConnection>
+    <url>https://hudson.dev.java.net/source/browse/hudson/tags/downstream-ext-1.2</url>
+  </scm>
+</project>
