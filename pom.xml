@@ -17,7 +17,7 @@
 	</description>
 	<artifactId>downstream-ext</artifactId>
 	<packaging>hpi</packaging>
-	<version>1.2-SNAPSHOT</version>
+	<version>1.2</version>
     <url>http://wiki.hudson-ci.org/display/HUDSON/Downstream-Ext+Plugin</url>
     <developers>
         <developer>
@@ -58,4 +58,10 @@
             </plugin>
         </plugins>
     </build>
+
+  <scm>
+    <connection>scm:svn:https://guest@svn.dev.java.net/svn/hudson/tags/downstream-ext-1.2</connection>
+    <developerConnection>scm:svn:https://svn.dev.java.net/svn/hudson/tags/downstream-ext-1.2</developerConnection>
+    <url>https://hudson.dev.java.net/source/browse/hudson/tags/downstream-ext-1.2</url>
+  </scm>
 </project>
