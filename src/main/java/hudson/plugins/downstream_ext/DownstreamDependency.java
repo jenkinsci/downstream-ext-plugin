@@ -31,8 +31,8 @@ public class DownstreamDependency extends Dependency {
 	@SuppressWarnings("unchecked")
 	public boolean shouldTriggerBuild(AbstractBuild build,
 			TaskListener listener, List<Action> actions) {
-		if(build.getResult().isBetterOrEqualTo(trigger.getThreshold())) {
-            PrintStream logger = listener.getLogger();
+		PrintStream logger = listener.getLogger();
+		if(trigger.getStrategy().evaluate(trigger.getThreshold(), build.getResult())) {
             AbstractProject p = getDownstreamProject();
                 
             if(trigger.isOnlyIfSCMChanges() && !p.pollSCMChanges(listener)) {
@@ -41,6 +41,8 @@ public class DownstreamDependency extends Dependency {
             }
             return true;
 		} else {
+			logger.println(Messages.DownstreamTrigger_ConditionNotMet(trigger.getStrategy().getDisplayName(),
+					trigger.getThreshold()));
 			return false;
 		}
 	}

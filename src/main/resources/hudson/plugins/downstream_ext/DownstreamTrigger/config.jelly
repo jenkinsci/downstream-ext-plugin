@@ -27,17 +27,17 @@ THE SOFTWARE.
 	<f:textbox name="downstreamTrigger.childProjects" value="${instance.childProjectsValue}"
                checkUrl="'descriptorByName/DownstreamTrigger/check?value='+encodeURIComponent(this.value)"/>
   </f:entry>
-  <f:entry title="${%Trigger threshold}" description="${%Trigger downstream job if build result is x or better}">
-       <select class="setting-input" name="descriptor.threshold">
-       <j:forEach var="value" items="${descriptor.THRESHOLD_VALUES}">
-          <f:option selected="${instance.threshold.toString()==value}">${value}</f:option>
+  <f:entry title="${%Build result is}" description="${%Trigger downstream job if build result meets condition}">
+     <select name="descriptor.strategy">
+       <j:forEach var="st" items="${descriptor.STRATEGY_VALUES}">
+          <f:option value="${st.name()}" selected="${instance.strategy==st}">${st.displayName}</f:option>
        </j:forEach>
-       </select>
-      <select class="setting-input" name="descriptor.strategy">
-       <j:forEach var="value" items="${descriptor.STRATEGY_VALUES}">
-          <f:option selected="${instance.strategy==value}" value="${value.name()}">${value.getDisplayName()}</f:option>
+     </select>
+     <select name="descriptor.threshold">
+       <j:forEach var="thr" items="${descriptor.THRESHOLD_VALUES}">
+          <f:option selected="${instance.threshold.toString()==thr}">${thr}</f:option>
        </j:forEach>
-    </select>
+     </select>
   </f:entry>
   <f:entry title="">
       <f:checkbox id="downstreamTrigger.onlyIfSCMChanges" name="downstreamTrigger.onlyIfSCMChanges" checked="${instance.onlyIfSCMChanges}" />

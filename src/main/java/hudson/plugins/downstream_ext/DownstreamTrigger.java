@@ -80,8 +80,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
 
     @DataBoundConstructor
     public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges,
-            Strategy strategy) {
-        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, strategy);
+            String strategy) {
+        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, Strategy.valueOf(strategy));
     }
 
     public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges,
@@ -224,17 +224,11 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     public static class DescriptorImpl extends BuildTrigger.DescriptorImpl {
     	
     	public static final String[] THRESHOLD_VALUES = {
-    		Result.SUCCESS.toString(), Result.UNSTABLE.toString(), Result.FAILURE.toString()
+    		Result.SUCCESS.toString(), Result.UNSTABLE.toString(),
+    		Result.FAILURE.toString(), Result.ABORTED.toString()
     	};
     	
     	public static final Strategy[] STRATEGY_VALUES = Strategy.values();
-//    	static {
-//    	    List<String> tmp = new ArrayList<String>();
-//    	    for (Strategy s : Strategy.values()) {
-//    	        tmp.add(s.name());
-//    	    }
-//    	    STRATEGY_VALUES = tmp.toArray(new String[tmp.size()]);
-//    	}
     	
         @Override
 		public String getDisplayName() {
@@ -243,7 +237,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
 
         @Override
         public String getHelpFile() {
-            return "/help/project-config/downstream.html";
+            return "/plugin/downstream-ext/help.html";
         }
 
         @Override
@@ -252,7 +246,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
                 formData.getString("childProjects"),
                 formData.getString("threshold"),
                 formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"),
-                (Strategy)formData.get("strategy"));
+                formData.getString("strategy"));
         }
 
         @Extension
@@ -277,12 +271,27 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
         }
     }
 
-    enum Strategy {
-        AND_HIGHER("equals or higher"),
-        EXACT("equals"),
-        AND_LOWER("equals or lower");
+    public enum Strategy {
+        AND_HIGHER("equal or over") {
+			@Override
+			public boolean evaluate(Result threshold, Result actualResult) {
+				return actualResult.isBetterOrEqualTo(threshold);
+			}
+        },
+        EXACT("equal") {
+			@Override
+			public boolean evaluate(Result threshold, Result actualResult) {
+				return actualResult.equals(threshold);
+			}
+		},
+        AND_LOWER("equal or under") {
+			@Override
+			public boolean evaluate(Result threshold, Result actualResult) {
+				return actualResult.isWorseOrEqualTo(threshold);
+			}
+		};
         
-        private final String displayName;
+        public final String displayName;
 
         Strategy(String displayName) {
             this.displayName = displayName;
@@ -291,5 +300,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
         public String getDisplayName() {
             return this.displayName;
         }
+        
+        public abstract boolean evaluate(Result threshold, Result actualResult);
     }
 }
