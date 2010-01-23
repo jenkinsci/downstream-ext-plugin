@@ -32,6 +32,11 @@ THE SOFTWARE.
        <j:forEach var="value" items="${descriptor.THRESHOLD_VALUES}">
           <f:option selected="${instance.threshold.toString()==value}">${value}</f:option>
        </j:forEach>
+       </select>
+      <select class="setting-input" name="descriptor.strategy">
+       <j:forEach var="value" items="${descriptor.STRATEGY_VALUES}">
+          <f:option selected="${instance.strategy==value}" value="${value.name()}">${value.getDisplayName()}</f:option>
+       </j:forEach>
     </select>
   </f:entry>
   <f:entry title="">

@@ -41,6 +41,7 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
@@ -60,6 +61,8 @@ import org.kohsuke.stapler.StaplerRequest;
 @SuppressWarnings("unchecked")
 public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
 
+    private static final Logger LOGGER = Logger.getLogger(DownstreamTrigger.class.getName());
+    
     /**
      * Comma-separated list of other projects to be scheduled.
      */
@@ -70,19 +73,25 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
      */
     private Result threshold = Result.SUCCESS;
     
+    private Strategy thresholdStrategy;
+    
+    
     private final boolean onlyIfSCMChanges;
 
     @DataBoundConstructor
-    public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges) {
-        this(childProjects, resultFromString(threshold), onlyIfSCMChanges);
+    public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges,
+            Strategy strategy) {
+        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, strategy);
     }
 
-    public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges) {
+    public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges,
+            Strategy strategy) {
         if(childProjects==null)
             throw new IllegalArgumentException();
         this.childProjects = childProjects;
         this.threshold = threshold;
         this.onlyIfSCMChanges = onlyIfSCMChanges;
+        this.thresholdStrategy = strategy;
     }
     
     private static Result resultFromString(String s) {
@@ -113,6 +122,10 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
 
     public List<AbstractProject> getChildProjects() {
         return Items.fromNameList(childProjects,AbstractProject.class);
+    }
+    
+    public Strategy getStrategy() {
+        return this.thresholdStrategy;
     }
 
     public BuildStepMonitor getRequiredMonitorService() {
@@ -201,8 +214,9 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     }
 
     private Object readResolve() {
-        if(childProjects==null)
-            return childProjects="";
+        if (thresholdStrategy == null) {
+            thresholdStrategy = Strategy.AND_HIGHER;
+        }
         return this;
     }
 
@@ -212,6 +226,15 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     	public static final String[] THRESHOLD_VALUES = {
     		Result.SUCCESS.toString(), Result.UNSTABLE.toString(), Result.FAILURE.toString()
     	};
+    	
+    	public static final Strategy[] STRATEGY_VALUES = Strategy.values();
+//    	static {
+//    	    List<String> tmp = new ArrayList<String>();
+//    	    for (Strategy s : Strategy.values()) {
+//    	        tmp.add(s.name());
+//    	    }
+//    	    STRATEGY_VALUES = tmp.toArray(new String[tmp.size()]);
+//    	}
     	
         @Override
 		public String getDisplayName() {
@@ -228,7 +251,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
             return new DownstreamTrigger(
                 formData.getString("childProjects"),
                 formData.getString("threshold"),
-                formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"));
+                formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"),
+                (Strategy)formData.get("strategy"));
         }
 
         @Extension
@@ -253,5 +277,19 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(DownstreamTrigger.class.getName());
+    enum Strategy {
+        AND_HIGHER("equals or higher"),
+        EXACT("equals"),
+        AND_LOWER("equals or lower");
+        
+        private final String displayName;
+
+        Strategy(String displayName) {
+            this.displayName = displayName;
+        }
+        
+        public String getDisplayName() {
+            return this.displayName;
+        }
+    }
 }
