@@ -35,10 +35,10 @@ import hudson.model.DependencyGraph;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Items;
-import hudson.model.Job;
 import hudson.model.Project;
 import hudson.model.Result;
 import hudson.model.listeners.ItemListener;
+import hudson.plugins.downstream_ext.DownstreamTrigger.DescriptorImpl.ItemListenerImpl;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Notifier;
@@ -76,6 +76,11 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
      */
     private Result threshold = Result.SUCCESS;
     
+    /**
+     * Defines how the result {@link #threshold} should
+     * be evaluated.
+     * @since 1.3
+     */
     private Strategy thresholdStrategy;
     
     
@@ -169,7 +174,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     }
 
     /**
-     * Called from {@link Job#renameTo(String)} when a job is renamed.
+     * Called from {@link ItemListenerImpl} when a job is renamed.
      *
      * @return true
      *      if this {@link DownstreamTrigger} is changed and needs to be saved.
@@ -204,6 +209,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
 
     private Object readResolve() {
         if (thresholdStrategy == null) {
+        	// set to the single strategy used in downstream-ext <= 1.2
             thresholdStrategy = Strategy.AND_HIGHER;
         }
         return this;
@@ -242,7 +248,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
         public static class ItemListenerImpl extends ItemListener {
             @Override
             public void onRenamed(Item item, String oldName, String newName) {
-                // update DownstreamPublisher of other projects that point to this object.
+                // update DownstreamTrigger of other projects that point to this object.
                 // can't we generalize this?
                 for( Project<?,?> p : Hudson.getInstance().getProjects() ) {
                     DownstreamTrigger t = p.getPublishersList().get(DownstreamTrigger.class);

@@ -47,4 +47,18 @@ public class DownstreamDependency extends Dependency {
 		}
 	}
 
+	// Technically it'd be safe to not override equals
+	// since superclass implements it well.
+	// But maybe that changes in the future.
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof DownstreamDependency)) {
+			return false;
+		}
+		
+		// Currently, there can be only one downstream-ext dependency per project
+		// If that'd change later we must check the trigger instance here, too.
+		
+		return super.equals(obj);
+	}
 }
