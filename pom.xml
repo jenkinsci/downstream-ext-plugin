@@ -10,10 +10,7 @@
 
 	<name>Downstream-Ext</name>
 	<description>
-                This plugin provides extended configuration for downstream builds.
-                Currently, it supports triggering if the build was a failure
-                or to skip triggering downstream jobs which have no SCM changes -
-                in addition to the options provided by the build-in downstream trigger.
+                This plugin provides advanced options for triggering downstream builds.
 	</description>
 	<artifactId>downstream-ext</artifactId>
 	<packaging>hpi</packaging>
@@ -27,6 +24,10 @@
             <timezone>1</timezone>
         </developer>
     </developers>
+	
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 	
 	<build>
         <plugins>
