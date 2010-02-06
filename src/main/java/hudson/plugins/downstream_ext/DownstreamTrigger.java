@@ -25,6 +25,8 @@ package hudson.plugins.downstream_ext;
 
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.matrix.MatrixConfiguration;
+import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
@@ -43,6 +45,7 @@ import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -134,32 +137,6 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     
     @Override
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-//        if(build.getResult().isBetterOrEqualTo(getThreshold())) {
-//            PrintStream logger = listener.getLogger();
-//            //Trigger downstream projects of the project defined by this trigger
-//            List <AbstractProject> downstreamProjects = getChildProjects();
-//                
-//            for (AbstractProject p : downstreamProjects) {
-//                if(p.isDisabled()) {
-//                    logger.println(Messages.BuildTrigger_Disabled(p.getName()));
-//                    continue;
-//                }
-//                
-//                if(isOnlyIfSCMChanges() && !p.pollSCMChanges(listener)) {
-//                	logger.println(hudson.plugins.downstream_ext.Messages.DownstreamTrigger_NoSCMChanges(p.getName()));
-//                	continue;
-//                }
-//                // this is not completely accurate, as a new build might be triggered
-//                // between these calls
-//                String name = p.getName()+" #"+p.getNextBuildNumber();
-//                if(p.scheduleBuild(new UpstreamCause((Run)build))) {
-//                    logger.println(Messages.BuildTrigger_Triggering(name));
-//                } else {
-//                    logger.println(Messages.BuildTrigger_InQueue(name));
-//                }
-//            }
-//        }
-
     	// nothing to do here. Everything happens in buildDependencyGraph
         return true;
     }
@@ -171,6 +148,18 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
     	for (AbstractProject downstream : getChildProjects()) {
     		graph.addDependency(new DownstreamDependency(owner, downstream, this));
+    	}
+    	
+    	// workaround for problems with Matrixprojects
+    	// see http://issues.hudson-ci.org/browse/HUDSON-5508
+    	if (owner instanceof MatrixProject) {
+    		MatrixProject proj = (MatrixProject) owner;
+    		Collection<MatrixConfiguration> activeConfigurations = proj.getActiveConfigurations();
+    		for (MatrixConfiguration conf : activeConfigurations) {
+    			for (AbstractProject downstream : getChildProjects()) {
+    	    		graph.addDependency(new DownstreamDependency(conf, downstream, this));
+    	    	}
+    		}
     	}
     }
 
