@@ -216,7 +216,9 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     }
 
     @Extension
-    public static class DescriptorImpl extends BuildTrigger.DescriptorImpl {
+    // for some reason when running mvn from commandline the build fails,
+    // if BuildTrigger is not fully qualified here!?
+    public static class DescriptorImpl extends hudson.tasks.BuildTrigger.DescriptorImpl {
     	
     	public static final String[] THRESHOLD_VALUES = {
     		Result.SUCCESS.toString(), Result.UNSTABLE.toString(),
