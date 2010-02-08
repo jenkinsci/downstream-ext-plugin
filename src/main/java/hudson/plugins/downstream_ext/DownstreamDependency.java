@@ -35,9 +35,23 @@ public class DownstreamDependency extends Dependency {
 		if(trigger.getStrategy().evaluate(trigger.getThreshold(), build.getResult())) {
             AbstractProject p = getDownstreamProject();
                 
-            if(trigger.isOnlyIfSCMChanges() && !p.pollSCMChanges(listener)) {
-            	logger.println(Messages.DownstreamTrigger_NoSCMChanges(p.getName()));
-            	return false;
+            if(trigger.isOnlyIfSCMChanges()) {
+            	if (p.getScm().requiresWorkspaceForPolling()) {
+            		// Downstream project locks workspace while building.
+            		// If polled synchronously this could make the upstream build
+            		// lock for a possibly long time.
+            		// See HUDSON-5406
+            		logger.println(Messages.DownstreamTrigger_StartedAsynchPoll(p.getName()));
+            		p.schedulePolling();
+            		return false;
+            	}
+            	
+            	if (p.pollSCMChanges(listener)) {
+            		return true;
+            	} else {
+            		logger.println(Messages.DownstreamTrigger_NoSCMChanges(p.getName()));
+            		return false;
+            	}
             }
             return true;
 		} else {
