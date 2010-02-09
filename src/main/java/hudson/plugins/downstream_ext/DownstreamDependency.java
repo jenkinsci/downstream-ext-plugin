@@ -1,13 +1,18 @@
 package hudson.plugins.downstream_ext;
 
-import java.io.PrintStream;
-import java.util.List;
-
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
+import hudson.model.Cause;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.DependencyGraph.Dependency;
+import hudson.util.LogTaskListener;
+
+import java.io.PrintStream;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Defines a dependency introduced by the downstream-ext plugin.
@@ -16,6 +21,8 @@ import hudson.model.DependencyGraph.Dependency;
  */
 public class DownstreamDependency extends Dependency {
 
+	private static final Logger LOGGER = Logger.getLogger(DownstreamDependency.class.getName());
+	
 	private final DownstreamTrigger trigger;
 
 	public DownstreamDependency(AbstractProject<?, ?> upstream, AbstractProject<?, ?> downstream,
@@ -42,7 +49,8 @@ public class DownstreamDependency extends Dependency {
             		// lock for a possibly long time.
             		// See HUDSON-5406
             		logger.println(Messages.DownstreamTrigger_StartedAsynchPoll(p.getName()));
-            		p.schedulePolling();
+            		Thread t = new Thread(new PollRunner(p, new Cause.UpstreamCause((Run<?,?>)build)));
+            		t.start();
             		return false;
             	}
             	
@@ -74,5 +82,26 @@ public class DownstreamDependency extends Dependency {
 		// If that'd change later we must check the trigger instance here, too.
 		
 		return super.equals(obj);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private static class PollRunner implements Runnable {
+
+		private final AbstractProject project;
+		private final Cause cause;
+		private final TaskListener taskListener;
+
+		public PollRunner(AbstractProject p, Cause cause) {
+			this.project = p;
+			this.cause = cause;
+			this.taskListener = new LogTaskListener(LOGGER, Level.INFO);
+		}
+		
+		@Override
+		public void run() {
+			if(this.project.pollSCMChanges(this.taskListener)) {
+				this.project.scheduleBuild(this.cause);
+			}
+		}
 	}
 }
