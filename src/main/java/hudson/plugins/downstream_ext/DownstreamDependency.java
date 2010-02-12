@@ -49,7 +49,7 @@ public class DownstreamDependency extends Dependency {
             		// lock for a possibly long time.
             		// See HUDSON-5406
             		logger.println(Messages.DownstreamTrigger_StartedAsynchPoll(p.getName()));
-            		Thread t = new Thread(new PollRunner(p, new Cause.UpstreamCause((Run<?,?>)build)));
+            		Thread t = new Thread(new PollRunner(p, new Cause.UpstreamCause((Run<?,?>)build), actions));
             		t.start();
             		return false;
             	}
@@ -89,18 +89,28 @@ public class DownstreamDependency extends Dependency {
 
 		private final AbstractProject project;
 		private final Cause cause;
+		private final List<Action> buildActions;
 		private final TaskListener taskListener;
 
-		public PollRunner(AbstractProject p, Cause cause) {
+		public PollRunner(AbstractProject p, Cause cause, List<Action> actions) {
 			this.project = p;
 			this.cause = cause;
+			this.buildActions = actions;
 			this.taskListener = new LogTaskListener(LOGGER, Level.INFO);
 		}
 		
 		@Override
 		public void run() {
 			if(this.project.pollSCMChanges(this.taskListener)) {
-				this.project.scheduleBuild(this.cause);
+				LOGGER.info("SCM changes found for " + this.project + ". Triggering build.");
+				if (this.project.scheduleBuild(this.project.getQuietPeriod(), this.cause,
+                        buildActions.toArray(new Action[buildActions.size()]))) {
+					LOGGER.info("Build scheduled successfully.");
+				} else {
+					LOGGER.info("No build - this usually means that another build is already in the queue.");
+				}
+			} else {
+				LOGGER.info(Messages.DownstreamTrigger_NoSCMChanges(this.project.getName()));
 			}
 		}
 	}
