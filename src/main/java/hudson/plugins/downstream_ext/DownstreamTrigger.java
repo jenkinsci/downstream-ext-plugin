@@ -47,6 +47,9 @@ import hudson.tasks.Publisher;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -85,6 +88,9 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     
     
     private final boolean onlyIfSCMChanges;
+    
+    private static final ConcurrentHashMap<AbstractProject<?, ?>, Executor> executors =
+    	new ConcurrentHashMap<AbstractProject<?,?>, Executor>();
 
     @DataBoundConstructor
     public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges,
@@ -206,6 +212,18 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
 
         return changed;
     }
+    
+    public static void executeForProject(AbstractProject<?, ?> project, Runnable run) {
+    	Executor executor = executors.get(project);
+    	if (executor == null) {
+    		executor = Executors.newSingleThreadExecutor();
+    		Executor old = executors.putIfAbsent(project, executor);
+    		if (old != null) {
+    			executor = old;
+    		}
+    	}
+    	executor.execute(run);
+    }
 
     private Object readResolve() {
         if (thresholdStrategy == null) {
@@ -265,6 +283,11 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
                     }
                 }
             }
+
+			@Override
+			public void onDeleted(Item item) {
+				executors.remove(item);
+			}
         }
     }
 

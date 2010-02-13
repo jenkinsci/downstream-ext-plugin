@@ -49,8 +49,8 @@ public class DownstreamDependency extends Dependency {
             		// lock for a possibly long time.
             		// See HUDSON-5406
             		logger.println(Messages.DownstreamTrigger_StartedAsynchPoll(p.getName()));
-            		Thread t = new Thread(new PollRunner(p, new Cause.UpstreamCause((Run<?,?>)build), actions));
-            		t.start();
+            		Runnable run = getPoller(p, new Cause.UpstreamCause((Run<?,?>)build), actions);
+            		DownstreamTrigger.executeForProject(p, run);
             		return false;
             	}
             	
@@ -85,6 +85,11 @@ public class DownstreamDependency extends Dependency {
 	}
 	
 	@SuppressWarnings("unchecked")
+	Runnable getPoller(AbstractProject p, Cause cause, List<Action> actions) {
+		return new PollRunner(p, cause, actions);
+	}
+	
+	@SuppressWarnings("unchecked")
 	private static class PollRunner implements Runnable {
 
 		private final AbstractProject project;
@@ -107,7 +112,7 @@ public class DownstreamDependency extends Dependency {
                         buildActions.toArray(new Action[buildActions.size()]))) {
 					LOGGER.info("Build scheduled successfully.");
 				} else {
-					LOGGER.info("No build - this usually means that another build is already in the queue.");
+					LOGGER.info("No build scheduled - this usually means that another build is already in the queue.");
 				}
 			} else {
 				LOGGER.info(Messages.DownstreamTrigger_NoSCMChanges(this.project.getName()));
