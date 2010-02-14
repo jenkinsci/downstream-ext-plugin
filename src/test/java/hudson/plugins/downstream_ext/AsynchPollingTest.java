@@ -21,30 +21,48 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+@SuppressWarnings("unchecked")
 public class AsynchPollingTest {
 
-	/**
-	 * Tests that for projects with SCMs which 'requiresWorkspaceForPolling'
-	 * polling is started on a different thread.
-	 */
-	@Test
-	@SuppressWarnings("unchecked")
-	public void testPollingIsAsynchronous() throws IOException, InterruptedException {
-		AbstractProject upstream = mock(AbstractProject.class);
+	private AbstractProject upstream;
+	private AbstractProject downstream;
+	private AbstractBuild upstreamBuild;
+
+	@Before
+	public void setup() {
+		upstream = mock(AbstractProject.class);
 		ItemGroup parent = mock(ItemGroup.class);
 		when(parent.getUrl()).thenReturn("http://foo");
 		when(upstream.getParent()).thenReturn(parent);
 		
-		AbstractProject downstream = mock(AbstractProject.class);
+		upstreamBuild = mock(AbstractBuild.class);
+		when(upstreamBuild.getProject()).thenReturn(upstream);
+		when(upstreamBuild.getResult()).thenReturn(Result.SUCCESS);
+		
+		this.downstream = createDownstreamProject();
+	}
+	
+	private static AbstractProject createDownstreamProject() {
+		final AbstractProject downstream = mock(AbstractProject.class);
 		when(downstream.pollSCMChanges(Mockito.<TaskListener>any())).thenReturn(Boolean.TRUE);
 		SCM blockingScm = mock(SCM.class);
 		when(blockingScm.requiresWorkspaceForPolling()).thenReturn(Boolean.TRUE);
 		
 		when(downstream.getScm()).thenReturn(blockingScm);
 		
+		return downstream;
+	}
+	
+	/**
+	 * Tests that for projects with SCMs which 'requiresWorkspaceForPolling'
+	 * polling is started on a different thread.
+	 */
+	@Test
+	public void testPollingIsAsynchronous() throws IOException, InterruptedException {
 		final CountDownLatch startLatch = new CountDownLatch(1);
 		final CountDownLatch endLatch = new CountDownLatch(1);
 		
@@ -70,14 +88,10 @@ public class AsynchPollingTest {
 					}
 		};
 		
-		AbstractBuild upstreamBuild = mock(AbstractBuild.class);
-		when(upstreamBuild.getProject()).thenReturn(upstream);
-		when(upstreamBuild.getResult()).thenReturn(Result.SUCCESS);
-		
 		Action action = mock(Action.class);
 		
 		boolean triggerSynchronously = dependency.shouldTriggerBuild(upstreamBuild,
-				new StreamTaskListener(System.out), Collections.singletonList(action));
+				new StreamTaskListener(), Collections.singletonList(action));
 		assertFalse(triggerSynchronously);
 		
 		if(!startLatch.await(1, TimeUnit.MINUTES)) {
@@ -90,5 +104,101 @@ public class AsynchPollingTest {
 		
 		verify(downstream).scheduleBuild(downstream.getQuietPeriod(),
 				causeHolder[0], action);
+	}
+	
+	/**
+	 * Tests that for asynchronous polling only one polling is done in parallel.
+	 */
+	@Test
+	public void testOnlyOneParallelPoll() throws IOException, InterruptedException {
+		final CountDownLatch startLatch1 = new CountDownLatch(1);
+		final CountDownLatch endLatch1 = new CountDownLatch(1);
+		
+		DownstreamDependency dependency = new DownstreamDependency(upstream, downstream,
+				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER)) {
+
+					@Override
+					Runnable getPoller(AbstractProject p, Cause cause,
+							List<Action> actions) {
+						final Runnable run = super.getPoller(p, cause, actions);
+						
+						return new Runnable() {
+							@Override
+							public void run() {
+								startLatch1.countDown();
+								run.run();
+								try {
+									endLatch1.await();
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+							}
+						};
+					}
+		};
+		
+		boolean triggerSynchronously = dependency.shouldTriggerBuild(upstreamBuild,
+				new StreamTaskListener(), Collections.<Action>emptyList());
+		assertFalse(triggerSynchronously);
+		
+		// wait until 1st poller is definitely running
+		if (!startLatch1.await(1, TimeUnit.MINUTES)) {
+			fail("Time out waiting for start latch");
+		}
+		
+		final CountDownLatch startLatch2 = new CountDownLatch(1);
+		
+		DownstreamDependency dependency2 = new DownstreamDependency(upstream, downstream,
+				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER)) {
+					@Override
+					Runnable getPoller(AbstractProject p, Cause cause,
+							List<Action> actions) {
+						final Runnable run = super.getPoller(p, cause, actions);
+						
+						return new Runnable() {
+							@Override
+							public void run() {
+								startLatch2.countDown();
+								run.run();
+							}
+						};
+					}
+		};
+		dependency2.shouldTriggerBuild(upstreamBuild,
+				new StreamTaskListener(), Collections.<Action>emptyList());
+		
+		boolean noTimeout = startLatch2.await(2, TimeUnit.SECONDS);
+		// assert that we timeout waiting for poller2 to start
+		assertFalse(noTimeout);
+		
+		// poll on a different downstream job can still happen:
+		final CountDownLatch startLatch3 = new CountDownLatch(1);
+		AbstractProject newDownstream = createDownstreamProject();
+		DownstreamDependency dependency3 = new DownstreamDependency(upstream, newDownstream,
+				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER)) {
+					@Override
+					Runnable getPoller(AbstractProject p, Cause cause,
+							List<Action> actions) {
+						final Runnable run = super.getPoller(p, cause, actions);
+						
+						return new Runnable() {
+							@Override
+							public void run() {
+								startLatch3.countDown();
+								run.run();
+							}
+						};
+					}
+		};
+		dependency3.shouldTriggerBuild(upstreamBuild,
+				new StreamTaskListener(), Collections.<Action>emptyList());
+		noTimeout = startLatch3.await(1, TimeUnit.MINUTES);
+		assertTrue(noTimeout);
+		
+		
+		// when poller 1 finishes, poller2 can continue:
+		endLatch1.countDown();
+		noTimeout = startLatch2.await(1, TimeUnit.MINUTES);
+		assertTrue(noTimeout);
 	}
 }
