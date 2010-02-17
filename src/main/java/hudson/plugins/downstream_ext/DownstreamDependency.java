@@ -106,13 +106,14 @@ public class DownstreamDependency extends Dependency {
 		
 		@Override
 		public void run() {
+		    LOGGER.info("Polling for SCM changes in " + this.project.getName());
 			if(this.project.pollSCMChanges(this.taskListener)) {
-				LOGGER.info("SCM changes found for " + this.project + ". Triggering build.");
+				LOGGER.info("SCM changes found for " + this.project.getName() + ". Triggering build.");
 				if (this.project.scheduleBuild(this.project.getQuietPeriod(), this.cause,
                         buildActions.toArray(new Action[buildActions.size()]))) {
-					LOGGER.info("Build scheduled successfully.");
+					LOGGER.info("Build of " + this.project.getName() + " scheduled successfully.");
 				} else {
-					LOGGER.info("No build scheduled - this usually means that another build is already in the queue.");
+					LOGGER.info("No build of " + this.project.getName() + " scheduled - this usually means that another build is already in the queue.");
 				}
 			} else {
 				LOGGER.info(Messages.DownstreamTrigger_NoSCMChanges(this.project.getName()));
