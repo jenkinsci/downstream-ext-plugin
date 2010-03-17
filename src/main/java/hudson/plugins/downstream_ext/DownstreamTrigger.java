@@ -25,6 +25,9 @@ package hudson.plugins.downstream_ext;
 
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.matrix.MatrixAggregatable;
+import hudson.matrix.MatrixAggregator;
+import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixConfiguration;
 import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
@@ -65,7 +68,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * but has changed significantly in the mean time.
  */
 @SuppressWarnings("unchecked")
-public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
+public class DownstreamTrigger extends Notifier implements DependecyDeclarer, MatrixAggregatable {
 
     private static final Logger LOGGER = Logger.getLogger(DownstreamTrigger.class.getName());
     
@@ -88,24 +91,33 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     
     
     private final boolean onlyIfSCMChanges;
+
+    /**
+     * Defines if for Matrix jobs the downstream job should only be triggered once.
+     * Default is to trigger for each child configuration of the Matrix parent.
+     * 
+     * @since 1.6
+     */
+	private final boolean triggerOnlyOnceWhenMatrixEnds;
     
     private static final ConcurrentHashMap<AbstractProject<?, ?>, Executor> executors =
     	new ConcurrentHashMap<AbstractProject<?,?>, Executor>();
 
     @DataBoundConstructor
     public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges,
-            String strategy) {
-        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, Strategy.valueOf(strategy));
+            String strategy, boolean triggerOnlyOnceWhenMatrixEnds) {
+        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, Strategy.valueOf(strategy), triggerOnlyOnceWhenMatrixEnds);
     }
 
     public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges,
-            Strategy strategy) {
+            Strategy strategy, boolean triggerOnlyOnceWhenMatrixEnds) {
         if(childProjects==null)
             throw new IllegalArgumentException();
         this.childProjects = childProjects;
         this.threshold = threshold;
         this.onlyIfSCMChanges = onlyIfSCMChanges;
         this.thresholdStrategy = strategy;
+        this.triggerOnlyOnceWhenMatrixEnds = triggerOnlyOnceWhenMatrixEnds;
     }
     
     private static Result resultFromString(String s) {
@@ -133,6 +145,10 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     public boolean isOnlyIfSCMChanges() {
     	return onlyIfSCMChanges;
     }
+    
+    public boolean isTriggerOnlyOnceWhenMatrixEnds() {
+       	return triggerOnlyOnceWhenMatrixEnds;
+    }
 
     public List<AbstractProject> getChildProjects() {
         return Items.fromNameList(childProjects,AbstractProject.class);
@@ -151,6 +167,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     	// nothing to do here. Everything happens in buildDependencyGraph
         return true;
     }
+    
+    
 
     /**
      * {@inheritDoc}
@@ -163,14 +181,16 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
     	
     	// workaround for problems with Matrixprojects
     	// see http://issues.hudson-ci.org/browse/HUDSON-5508
-    	if (owner instanceof MatrixProject) {
-    		MatrixProject proj = (MatrixProject) owner;
-    		Collection<MatrixConfiguration> activeConfigurations = proj.getActiveConfigurations();
-    		for (MatrixConfiguration conf : activeConfigurations) {
-    			for (AbstractProject downstream : getChildProjects()) {
-    	    		graph.addDependency(new DownstreamDependency(conf, downstream, this));
-    	    	}
-    		}
+    	if (!triggerOnlyOnceWhenMatrixEnds) {
+	    	if (owner instanceof MatrixProject) {
+	    		MatrixProject proj = (MatrixProject) owner;
+	    		Collection<MatrixConfiguration> activeConfigurations = proj.getActiveConfigurations();
+	    		for (MatrixConfiguration conf : activeConfigurations) {
+	    			for (AbstractProject downstream : getChildProjects()) {
+	    	    		graph.addDependency(new DownstreamDependency(conf, downstream, this));
+	    	    	}
+	    		}
+	    	}
     	}
     }
 
@@ -261,8 +281,13 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
                 formData.getString("childProjects"),
                 formData.getString("threshold"),
                 formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"),
-                formData.getString("strategy"));
+                formData.getString("strategy"), 
+                formData.getBoolean("triggerOnlyOnceWhenMatrixEnds"));
         }
+        
+        public boolean isMatrixProject(AbstractProject project) {
+			return project instanceof MatrixProject;
+		}
 
         @Extension
         public static class ItemListenerImpl extends ItemListener {
@@ -323,4 +348,23 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer {
         
         public abstract boolean evaluate(Result threshold, Result actualResult);
     }
+
+    /**
+     * This method is invoked only by matrix projects and is used to allow a matrix job to fire a
+     * downstream job only when it ends, instead of starting them for every matrix configuration.
+     * 
+     */
+	@Override
+	public MatrixAggregator createAggregator(MatrixBuild build,
+			Launcher launcher, BuildListener listener) {
+		return new MatrixAggregator(build, launcher, listener) {
+            @Override
+            public boolean endBuild() throws InterruptedException, IOException {
+            	if (triggerOnlyOnceWhenMatrixEnds) {
+            		return hudson.tasks.BuildTrigger.execute(build,listener);
+            	}
+            	return true;
+            }
+        };
+	}
 }

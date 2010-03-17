@@ -43,4 +43,10 @@ THE SOFTWARE.
       <f:checkbox id="downstreamTrigger.onlyIfSCMChanges" name="downstreamTrigger.onlyIfSCMChanges" checked="${instance.onlyIfSCMChanges}" />
       <label for="downstreamTrigger.onlyIfSCMChanges">${%Trigger only if downstream project has SCM changes}</label>
   </f:entry>
+  <j:if test="${descriptor.isMatrixProject(it)}">
+	  <f:entry title="">
+	      <f:checkbox id="downstreamTrigger.triggerOnlyOnceWhenMatrixEnds" name="downstreamTrigger.triggerOnlyOnceWhenMatrixEnds" checked="${instance.triggerOnlyOnceWhenMatrixEnds}" />
+	      <label for="downstreamTrigger.triggerOnlyOnceWhenMatrixEnds">${%Trigger downstream jobs only once when matrix parent finishes.}</label>
+	  </f:entry>
+  </j:if>	
 </j:jelly>
