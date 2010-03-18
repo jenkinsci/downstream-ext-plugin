@@ -277,12 +277,12 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 
         @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-            return new DownstreamTrigger(
-                formData.getString("childProjects"),
-                formData.getString("threshold"),
-                formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"),
-                formData.getString("strategy"), 
-                formData.getBoolean("triggerOnlyOnceWhenMatrixEnds"));
+			return new DownstreamTrigger(formData.getString("childProjects"),
+					formData.getString("threshold"),
+					formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"),
+					formData.getString("strategy"),
+					formData.has("triggerOnlyOnceWhenMatrixEnds")
+					  && formData.getBoolean("triggerOnlyOnceWhenMatrixEnds"));
         }
         
         public boolean isMatrixProject(AbstractProject project) {
