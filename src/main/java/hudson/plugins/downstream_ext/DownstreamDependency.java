@@ -8,8 +8,10 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.DependencyGraph.Dependency;
 import hudson.util.LogTaskListener;
+import hudson.util.StreamTaskListener;
 
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -101,7 +103,15 @@ public class DownstreamDependency extends Dependency {
 			this.project = p;
 			this.cause = cause;
 			this.buildActions = actions;
-			this.taskListener = new LogTaskListener(LOGGER, Level.INFO);
+			// workaround for HUDSON-5406:
+			// some (all?) SCMs require a serializable TaskListener for AbstractProject#pollSCMChanges
+			// LogTaskListener is not serializable (at least not up until Hudson 1.352)
+			TaskListener tl = new LogTaskListener(LOGGER, Level.INFO);
+			if (tl instanceof Serializable) {
+			    this.taskListener = tl;
+			} else {
+			    this.taskListener = new StreamTaskListener(System.out);
+			}
 		}
 		
 		@Override
