@@ -69,7 +69,8 @@ public class AsynchPollingTest {
 		final Cause[] causeHolder = new Cause[1];
 		
 		DownstreamDependency dependency = new DownstreamDependency(upstream, downstream,
-				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER, false)) {
+				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER,
+						MatrixTrigger.BOTH)) {
 
 					@Override
 					Runnable getPoller(AbstractProject p, Cause cause,
@@ -115,7 +116,8 @@ public class AsynchPollingTest {
 		final CountDownLatch endLatch1 = new CountDownLatch(1);
 		
 		DownstreamDependency dependency = new DownstreamDependency(upstream, downstream,
-				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER, false)) {
+				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER,
+						MatrixTrigger.BOTH)) {
 
 					@Override
 					Runnable getPoller(AbstractProject p, Cause cause,
@@ -149,7 +151,8 @@ public class AsynchPollingTest {
 		final CountDownLatch startLatch2 = new CountDownLatch(1);
 		
 		DownstreamDependency dependency2 = new DownstreamDependency(upstream, downstream,
-				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER, false)) {
+				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER,
+						MatrixTrigger.BOTH)) {
 					@Override
 					Runnable getPoller(AbstractProject p, Cause cause,
 							List<Action> actions) {
@@ -175,7 +178,8 @@ public class AsynchPollingTest {
 		final CountDownLatch startLatch3 = new CountDownLatch(1);
 		AbstractProject newDownstream = createDownstreamProject();
 		DownstreamDependency dependency3 = new DownstreamDependency(upstream, newDownstream,
-				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER, false)) {
+				new DownstreamTrigger("", Result.SUCCESS, true, Strategy.AND_HIGHER,
+						MatrixTrigger.BOTH)) {
 					@Override
 					Runnable getPoller(AbstractProject p, Cause cause,
 							List<Action> actions) {

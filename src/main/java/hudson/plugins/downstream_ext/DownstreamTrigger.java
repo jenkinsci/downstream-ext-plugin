@@ -97,27 +97,34 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
      * Default is to trigger for each child configuration of the Matrix parent.
      * 
      * @since 1.6
+     * @deprecated replaced by matrixTrigger
      */
-	private final boolean triggerOnlyOnceWhenMatrixEnds;
+	@Deprecated
+	private transient Boolean triggerOnlyOnceWhenMatrixEnds;
+	
+	private MatrixTrigger matrixTrigger;
     
     private static final ConcurrentHashMap<AbstractProject<?, ?>, Executor> executors =
     	new ConcurrentHashMap<AbstractProject<?,?>, Executor>();
 
     @DataBoundConstructor
     public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges,
-            String strategy, boolean triggerOnlyOnceWhenMatrixEnds) {
-        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, Strategy.valueOf(strategy), triggerOnlyOnceWhenMatrixEnds);
+            String strategy, String matrixTrigger) {
+        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, Strategy.valueOf(strategy),
+             matrixTrigger != null ?
+        		MatrixTrigger.valueOf(matrixTrigger)
+        		: null);
     }
 
     public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges,
-            Strategy strategy, boolean triggerOnlyOnceWhenMatrixEnds) {
+            Strategy strategy, MatrixTrigger matrixTrigger) {
         if(childProjects==null)
             throw new IllegalArgumentException();
         this.childProjects = childProjects;
         this.threshold = threshold;
         this.onlyIfSCMChanges = onlyIfSCMChanges;
         this.thresholdStrategy = strategy;
-        this.triggerOnlyOnceWhenMatrixEnds = triggerOnlyOnceWhenMatrixEnds;
+        this.matrixTrigger = matrixTrigger;
     }
     
     private static Result resultFromString(String s) {
@@ -146,8 +153,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     	return onlyIfSCMChanges;
     }
     
-    public boolean isTriggerOnlyOnceWhenMatrixEnds() {
-       	return triggerOnlyOnceWhenMatrixEnds;
+    public MatrixTrigger getMatrixTrigger() {
+       	return this.matrixTrigger;
     }
 
     public List<AbstractProject> getChildProjects() {
@@ -167,8 +174,6 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     	// nothing to do here. Everything happens in buildDependencyGraph
         return true;
     }
-    
-    
 
     /**
      * {@inheritDoc}
@@ -179,9 +184,11 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     		graph.addDependency(new DownstreamDependency(owner, downstream, this));
     	}
     	
-    	// workaround for problems with Matrixprojects
+    	// workaround for problems with Matrix projects
     	// see http://issues.hudson-ci.org/browse/HUDSON-5508
-    	if (!triggerOnlyOnceWhenMatrixEnds) {
+    	if (this.matrixTrigger != null &&
+    		(this.matrixTrigger == MatrixTrigger.ONLY_CONFIGURATIONS
+    	    || this.matrixTrigger == MatrixTrigger.BOTH)) {
 	    	if (owner instanceof MatrixProject) {
 	    		MatrixProject proj = (MatrixProject) owner;
 	    		Collection<MatrixConfiguration> activeConfigurations = proj.getActiveConfigurations();
@@ -250,6 +257,13 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
         	// set to the single strategy used in downstream-ext <= 1.2
             thresholdStrategy = Strategy.AND_HIGHER;
         }
+        if (this.triggerOnlyOnceWhenMatrixEnds != null) {
+        	if (this.triggerOnlyOnceWhenMatrixEnds.booleanValue()) {
+        		this.matrixTrigger = MatrixTrigger.ONLY_PARENT;
+        	} else {
+        		this.matrixTrigger = MatrixTrigger.ONLY_CONFIGURATIONS;
+        	}
+        }
         return this;
     }
 
@@ -262,6 +276,16 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     		Result.SUCCESS.toString(), Result.UNSTABLE.toString(),
     		Result.FAILURE.toString(), Result.ABORTED.toString()
     	};
+    	
+    	public static final String[] MATRIX_TRIGGER_VALUES;
+    	
+    	static {
+    		MatrixTrigger[] values = MatrixTrigger.values();
+    		MATRIX_TRIGGER_VALUES = new String[values.length];
+    		for (int i=0; i < values.length; i++) {
+    			MATRIX_TRIGGER_VALUES[i] = values[i].toString();
+    		}
+    	}
     	
     	public static final Strategy[] STRATEGY_VALUES = Strategy.values();
     	
@@ -277,12 +301,15 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 
         @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        	String matrixTrigger = formData.has("matrixTrigger") ?
+        			formData.getString("matrixTrigger") : null;
+
 			return new DownstreamTrigger(formData.getString("childProjects"),
 					formData.getString("threshold"),
 					formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"),
 					formData.getString("strategy"),
-					formData.has("triggerOnlyOnceWhenMatrixEnds")
-					  && formData.getBoolean("triggerOnlyOnceWhenMatrixEnds"));
+					matrixTrigger
+					);
         }
         
         public boolean isMatrixProject(AbstractProject project) {
@@ -360,7 +387,10 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 		return new MatrixAggregator(build, launcher, listener) {
             @Override
             public boolean endBuild() throws InterruptedException, IOException {
-            	if (triggerOnlyOnceWhenMatrixEnds) {
+            	if (matrixTrigger != null &&
+            		(matrixTrigger == MatrixTrigger.ONLY_PARENT
+                	 || matrixTrigger == MatrixTrigger.BOTH)) {
+            		// trigger downstream job once
             		return hudson.tasks.BuildTrigger.execute(build,listener);
             	}
             	return true;

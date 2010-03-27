@@ -44,9 +44,12 @@ THE SOFTWARE.
       <label for="downstreamTrigger.onlyIfSCMChanges">${%Trigger only if downstream project has SCM changes}</label>
   </f:entry>
   <j:if test="${descriptor.isMatrixProject(it)}">
-	  <f:entry title="">
-	      <f:checkbox id="downstreamTrigger.triggerOnlyOnceWhenMatrixEnds" name="downstreamTrigger.triggerOnlyOnceWhenMatrixEnds" checked="${instance.triggerOnlyOnceWhenMatrixEnds}" />
-	      <label for="downstreamTrigger.triggerOnlyOnceWhenMatrixEnds">${%Trigger downstream jobs only once when matrix parent finishes.}</label>
+	  <f:entry title="${%Trigger for matrix projects}" help="/plugin/downstream-ext/help-matrixtrigger.html">
+	      <select name="descriptor.matrixTrigger">
+	       <j:forEach var="mTrig" items="${descriptor.MATRIX_TRIGGER_VALUES}">
+	          <f:option selected="${instance.matrixTrigger.toString()==mTrig}">${mTrig}</f:option>
+	       </j:forEach>
+	     </select>
 	  </f:entry>
   </j:if>	
 </j:jelly>
