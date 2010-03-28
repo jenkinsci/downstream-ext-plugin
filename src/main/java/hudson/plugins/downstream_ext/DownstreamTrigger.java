@@ -102,6 +102,12 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 	@Deprecated
 	private transient Boolean triggerOnlyOnceWhenMatrixEnds;
 	
+	/**
+	 * Defines when to trigger downstream builds for matrix upstream jobs.
+	 * 
+	 * @see {@link MatrixTrigger}
+	 * @since 1.6
+	 */
 	private MatrixTrigger matrixTrigger;
     
     private static final ConcurrentHashMap<AbstractProject<?, ?>, Executor> executors =
