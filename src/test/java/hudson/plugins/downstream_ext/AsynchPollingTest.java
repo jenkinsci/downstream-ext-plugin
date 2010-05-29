@@ -95,11 +95,11 @@ public class AsynchPollingTest {
 				new StreamTaskListener(), Collections.singletonList(action));
 		assertFalse(triggerSynchronously);
 		
-		if(!startLatch.await(1, TimeUnit.MINUTES)) {
+		if(!startLatch.await(60, TimeUnit.SECONDS)) {
 			fail("Time out waiting for start latch");
 		}
 		
-		if(!endLatch.await(1, TimeUnit.MINUTES)) {
+		if(!endLatch.await(60, TimeUnit.SECONDS)) {
 			fail("Time out waiting for end latch");
 		}
 		
@@ -144,7 +144,7 @@ public class AsynchPollingTest {
 		assertFalse(triggerSynchronously);
 		
 		// wait until 1st poller is definitely running
-		if (!startLatch1.await(1, TimeUnit.MINUTES)) {
+		if (!startLatch1.await(60, TimeUnit.SECONDS)) {
 			fail("Time out waiting for start latch");
 		}
 		
@@ -196,13 +196,13 @@ public class AsynchPollingTest {
 		};
 		dependency3.shouldTriggerBuild(upstreamBuild,
 				new StreamTaskListener(), Collections.<Action>emptyList());
-		noTimeout = startLatch3.await(1, TimeUnit.MINUTES);
+		noTimeout = startLatch3.await(60, TimeUnit.SECONDS);
 		assertTrue(noTimeout);
 		
 		
 		// when poller 1 finishes, poller2 can continue:
 		endLatch1.countDown();
-		noTimeout = startLatch2.await(1, TimeUnit.MINUTES);
+		noTimeout = startLatch2.await(60, TimeUnit.SECONDS);
 		assertTrue(noTimeout);
 	}
 }
