@@ -67,7 +67,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * This class was inspired by {@link BuildTrigger} (rev. 21890) -
  * but has changed significantly in the mean time.
  */
-@SuppressWarnings("unchecked")
+@SuppressWarnings("rawtypes")
 public class DownstreamTrigger extends Notifier implements DependecyDeclarer, MatrixAggregatable {
 
     private static final Logger LOGGER = Logger.getLogger(DownstreamTrigger.class.getName());
@@ -191,7 +191,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     	}
     	
     	// workaround for problems with Matrix projects
-    	// see http://issues.hudson-ci.org/browse/HUDSON-5508
+    	// see https://issues.jenkins-ci.org/browse/JENKINS-5508
     	if (this.matrixTrigger != null &&
     		(this.matrixTrigger == MatrixTrigger.ONLY_CONFIGURATIONS
     	    || this.matrixTrigger == MatrixTrigger.BOTH)) {

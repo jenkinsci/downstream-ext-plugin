@@ -37,7 +37,7 @@ public class DownstreamDependency extends Dependency {
 	 * {@inheritDoc}
 	 */
 	@Override
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("rawtypes")
 	public boolean shouldTriggerBuild(AbstractBuild build,
 			TaskListener listener, List<Action> actions) {
 		PrintStream logger = listener.getLogger();
@@ -86,12 +86,12 @@ public class DownstreamDependency extends Dependency {
 		return super.equals(obj);
 	}
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("rawtypes")
 	Runnable getPoller(AbstractProject p, Cause cause, List<Action> actions) {
 		return new PollRunner(p, cause, actions);
 	}
 	
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("rawtypes")
 	private static class PollRunner implements Runnable {
 
 		private final AbstractProject project;
