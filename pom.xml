@@ -14,7 +14,7 @@
 	<artifactId>downstream-ext</artifactId>
 	<packaging>hpi</packaging>
 	<version>1.7-SNAPSHOT</version>
-    <url>http://wiki.hudson-ci.org/display/HUDSON/Downstream-Ext+Plugin</url>
+    <url>https://wiki.jenkins-ci.org/display/JENKINS/Downstream-Ext+Plugin</url>
     <developers>
         <developer>
             <id>kutzi</id>
@@ -37,12 +37,6 @@
 	
 	<build>
         <plugins>
-            <plugin>
-                <groupId>org.jvnet.hudson.tools</groupId>
-                <artifactId>maven-hpi-plugin</artifactId>
-                <version>1.48</version>
-                <extensions>true</extensions>
-            </plugin>
             <!-- Make sure that we don't use any Java 1.6 dependencies -->
             <plugin>
                 <groupId>org.jvnet</groupId>
@@ -70,7 +64,7 @@
     	<dependency>
     		<groupId>org.mockito</groupId>
     		<artifactId>mockito-core</artifactId>
-    		<version>1.8.2</version>
+    		<version>1.8.5</version>
     		<scope>test</scope>
     	</dependency>
     </dependencies>
