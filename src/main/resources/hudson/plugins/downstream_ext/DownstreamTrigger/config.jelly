@@ -41,7 +41,7 @@ THE SOFTWARE.
   </f:entry>
   <f:entry title="">
       <f:checkbox id="downstreamTrigger.onlyIfSCMChanges" name="downstreamTrigger.onlyIfSCMChanges" checked="${instance.onlyIfSCMChanges}" />
-      <label for="downstreamTrigger.onlyIfSCMChanges">${%Trigger only if downstream project has SCM changes}</label>
+      <label class="attach-previous">${%Trigger only if downstream project has SCM changes}</label>
   </f:entry>
   <j:if test="${descriptor.isMatrixProject(it)}">
 	  <f:entry title="${%Trigger for matrix projects}" help="/plugin/downstream-ext/help-matrixtrigger.html">
