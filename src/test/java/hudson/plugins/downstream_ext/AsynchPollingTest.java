@@ -25,7 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings("rawtypes")
 public class AsynchPollingTest {
 
 	private AbstractProject upstream;
@@ -37,6 +37,7 @@ public class AsynchPollingTest {
 		upstream = mock(AbstractProject.class);
 		ItemGroup parent = mock(ItemGroup.class);
 		when(parent.getUrl()).thenReturn("http://foo");
+		when(parent.getFullName()).thenReturn("Parent full name");
 		when(upstream.getParent()).thenReturn(parent);
 		
 		upstreamBuild = mock(AbstractBuild.class);
