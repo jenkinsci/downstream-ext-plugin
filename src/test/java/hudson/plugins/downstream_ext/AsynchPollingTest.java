@@ -12,8 +12,9 @@ import hudson.model.ItemGroup;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.plugins.downstream_ext.DownstreamTrigger.Strategy;
+import hudson.scm.PollingResult;
+import hudson.scm.PollingResult.Change;
 import hudson.scm.SCM;
-import hudson.util.StreamTaskListener;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -49,7 +50,7 @@ public class AsynchPollingTest {
 	
 	private static AbstractProject createDownstreamProject() {
 		final AbstractProject downstream = mock(AbstractProject.class);
-		when(downstream.pollSCMChanges(Mockito.<TaskListener>any())).thenReturn(Boolean.TRUE);
+		when(downstream.poll(Mockito.<TaskListener>any())).thenReturn(new PollingResult(Change.SIGNIFICANT));
 		SCM blockingScm = mock(SCM.class);
 		when(blockingScm.requiresWorkspaceForPolling()).thenReturn(Boolean.TRUE);
 		
@@ -93,7 +94,7 @@ public class AsynchPollingTest {
 		Action action = mock(Action.class);
 		
 		boolean triggerSynchronously = dependency.shouldTriggerBuild(upstreamBuild,
-				new StreamTaskListener(), Collections.singletonList(action));
+				TaskListener.NULL, Collections.singletonList(action));
 		assertFalse(triggerSynchronously);
 		
 		if(!startLatch.await(60, TimeUnit.SECONDS)) {
@@ -141,7 +142,7 @@ public class AsynchPollingTest {
 		};
 		
 		boolean triggerSynchronously = dependency.shouldTriggerBuild(upstreamBuild,
-				new StreamTaskListener(), Collections.<Action>emptyList());
+				TaskListener.NULL, Collections.<Action>emptyList());
 		assertFalse(triggerSynchronously);
 		
 		// wait until 1st poller is definitely running
@@ -169,7 +170,7 @@ public class AsynchPollingTest {
 					}
 		};
 		dependency2.shouldTriggerBuild(upstreamBuild,
-				new StreamTaskListener(), Collections.<Action>emptyList());
+				TaskListener.NULL, Collections.<Action>emptyList());
 		
 		boolean noTimeout = startLatch2.await(2, TimeUnit.SECONDS);
 		// assert that we timeout waiting for poller2 to start
@@ -196,7 +197,7 @@ public class AsynchPollingTest {
 					}
 		};
 		dependency3.shouldTriggerBuild(upstreamBuild,
-				new StreamTaskListener(), Collections.<Action>emptyList());
+				TaskListener.NULL, Collections.<Action>emptyList());
 		noTimeout = startLatch3.await(60, TimeUnit.SECONDS);
 		assertTrue(noTimeout);
 		

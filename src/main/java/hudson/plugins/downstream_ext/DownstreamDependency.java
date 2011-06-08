@@ -7,6 +7,7 @@ import hudson.model.Cause;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.DependencyGraph.Dependency;
+import hudson.scm.PollingResult;
 import hudson.util.LogTaskListener;
 import hudson.util.StreamTaskListener;
 
@@ -56,7 +57,7 @@ public class DownstreamDependency extends Dependency {
             		return false;
             	}
             	
-            	if (p.pollSCMChanges(listener)) {
+            	if (p.poll(listener).hasChanges()) {
             		return true;
             	} else {
             		logger.println(Messages.DownstreamTrigger_NoSCMChanges(p.getName()));
@@ -110,14 +111,15 @@ public class DownstreamDependency extends Dependency {
 			if (tl instanceof Serializable) {
 			    this.taskListener = tl;
 			} else {
-			    this.taskListener = new StreamTaskListener(System.out);
+			    this.taskListener = StreamTaskListener.fromStdout();
 			}
 		}
 		
 		@Override
 		public void run() {
 		    LOGGER.info("Polling for SCM changes in " + this.project.getName());
-			if(this.project.pollSCMChanges(this.taskListener)) {
+		    PollingResult pollingResult = this.project.poll(this.taskListener);
+			if(pollingResult.hasChanges()) {
 				LOGGER.info("SCM changes found for " + this.project.getName() + ". Triggering build.");
 				if (this.project.scheduleBuild(this.project.getQuietPeriod(), this.cause,
                         buildActions.toArray(new Action[buildActions.size()]))) {
