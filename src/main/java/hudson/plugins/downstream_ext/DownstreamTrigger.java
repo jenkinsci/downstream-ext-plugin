@@ -92,6 +92,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     
     private final boolean onlyIfSCMChanges;
 
+    private final boolean onlyIfLocalSCMChanges;
+
     /**
      * Defines if for Matrix jobs the downstream job should only be triggered once.
      * Default is to trigger for each child configuration of the Matrix parent.
@@ -114,21 +116,22 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     	new ConcurrentHashMap<AbstractProject<?,?>, Executor>();
 
     @DataBoundConstructor
-    public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges,
+    public DownstreamTrigger(String childProjects, String threshold, boolean onlyIfSCMChanges, boolean onlyIfLocalSCMChanges,
             String strategy, String matrixTrigger) {
-        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, Strategy.valueOf(strategy),
+        this(childProjects, resultFromString(threshold), onlyIfSCMChanges, onlyIfLocalSCMChanges,Strategy.valueOf(strategy),
              matrixTrigger != null ?
         		MatrixTrigger.valueOf(matrixTrigger)
         		: null);
     }
 
-    public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges,
+    public DownstreamTrigger(String childProjects, Result threshold, boolean onlyIfSCMChanges, boolean onlyIfLocalSCMChanges,
             Strategy strategy, MatrixTrigger matrixTrigger) {
         if(childProjects==null)
             throw new IllegalArgumentException();
         this.childProjects = childProjects;
         this.threshold = threshold;
         this.onlyIfSCMChanges = onlyIfSCMChanges;
+        this.onlyIfLocalSCMChanges = onlyIfLocalSCMChanges;
         this.thresholdStrategy = strategy;
         this.matrixTrigger = matrixTrigger;
     }
@@ -158,7 +161,12 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     public boolean isOnlyIfSCMChanges() {
     	return onlyIfSCMChanges;
     }
-    
+
+    public boolean isOnlyIfLocalSCMChanges()
+    {
+        return onlyIfLocalSCMChanges;
+    }
+
     public MatrixTrigger getMatrixTrigger() {
        	return this.matrixTrigger;
     }
@@ -312,7 +320,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 			return new DownstreamTrigger(formData.getString("childProjects"),
 					formData.getString("threshold"),
 					formData.has("onlyIfSCMChanges") && formData.getBoolean("onlyIfSCMChanges"),
-					formData.getString("strategy"),
+                    formData.has("onlyIfLocalSCMChanges") && formData.getBoolean("onlyIfLocalSCMChanges"),
+                    formData.getString("strategy"),
 					matrixTrigger
 					);
         }

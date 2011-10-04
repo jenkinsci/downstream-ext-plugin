@@ -43,7 +43,12 @@ THE SOFTWARE.
       <f:checkbox id="downstreamTrigger.onlyIfSCMChanges" name="downstreamTrigger.onlyIfSCMChanges" checked="${instance.onlyIfSCMChanges}" />
       <label class="attach-previous">${%Trigger only if downstream project has SCM changes}</label>
   </f:entry>
-  <j:if test="${descriptor.isMatrixProject(it)}">
+    <f:entry title="">
+        <f:checkbox id="downstreamTrigger.onlyIfLocalSCMChanges" name="downstreamTrigger.onlyIfLocalSCMChanges"
+                    checked="${instance.onlyIfLocalSCMChanges}"/>
+        <label class="attach-previous">${%Trigger only if current project has SCM changes}</label>
+    </f:entry>
+    <j:if test="${descriptor.isMatrixProject(it)}">
 	  <f:entry title="${%Trigger for matrix projects}" help="/plugin/downstream-ext/help-matrixtrigger.html">
 	      <select name="descriptor.matrixTrigger">
 	       <j:forEach var="mTrig" items="${descriptor.MATRIX_TRIGGER_VALUES}">
