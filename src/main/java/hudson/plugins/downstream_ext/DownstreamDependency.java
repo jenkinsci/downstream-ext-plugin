@@ -7,6 +7,7 @@ import hudson.model.Cause;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.DependencyGraph.Dependency;
+import hudson.scm.ChangeLogSet;
 import hudson.scm.PollingResult;
 import hudson.util.LogTaskListener;
 import hudson.util.StreamTaskListener;
@@ -44,7 +45,23 @@ public class DownstreamDependency extends Dependency {
 		PrintStream logger = listener.getLogger();
 		if(trigger.getStrategy().evaluate(trigger.getThreshold(), build.getResult())) {
             AbstractProject p = getDownstreamProject();
-                
+
+            // check whether local changes are needed or not
+            if (trigger.isOnlyIfLocalSCMChanges())
+            {
+                // check whether current build is triggered by SCM - then there should be changes
+                ChangeLogSet changes = build.getChangeSet();
+                if (changes.isEmptySet())
+                {
+                    // no changes - no downstream builds
+                    logger.println(Messages.DownstreamTrigger_NoSCMChanges(build.getProject().getName()));
+                    return false;
+                }
+            }
+
+            // we either have local changes now, or they are not needed
+            // in both cases we continue with the downstream SCM check
+
             if(trigger.isOnlyIfSCMChanges()) {
             	if (p.getScm().requiresWorkspaceForPolling()) {
             		// Downstream project locks workspace while building.
@@ -115,7 +132,6 @@ public class DownstreamDependency extends Dependency {
 			}
 		}
 		
-		@Override
 		public void run() {
 		    LOGGER.info("Polling for SCM changes in " + this.project.getName());
 		    PollingResult pollingResult = this.project.poll(this.taskListener);
