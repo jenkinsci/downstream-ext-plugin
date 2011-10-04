@@ -115,7 +115,6 @@ public class DownstreamDependency extends Dependency {
 			}
 		}
 		
-		@Override
 		public void run() {
 		    LOGGER.info("Polling for SCM changes in " + this.project.getName());
 		    PollingResult pollingResult = this.project.poll(this.taskListener);

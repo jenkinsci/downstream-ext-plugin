@@ -184,7 +184,6 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     /**
      * {@inheritDoc}
      */
-    @Override
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
     	for (AbstractProject downstream : getChildProjects()) {
     		graph.addDependency(new DownstreamDependency(owner, downstream, this));
@@ -387,7 +386,6 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
      * downstream job only when it ends, instead of starting them for every matrix configuration.
      * 
      */
-	@Override
 	public MatrixAggregator createAggregator(MatrixBuild build,
 			Launcher launcher, BuildListener listener) {
 		return new MatrixAggregator(build, launcher, listener) {
