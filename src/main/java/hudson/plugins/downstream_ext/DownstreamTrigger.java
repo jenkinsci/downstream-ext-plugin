@@ -318,11 +318,6 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
         }
 
         @Override
-        public String getHelpFile() {
-            return "/plugin/downstream-ext/help.html";
-        }
-
-        @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
         	String matrixTrigger = formData.has("matrixTrigger") ?
         			formData.getString("matrixTrigger") : null;
