@@ -46,6 +46,42 @@ public class DownstreamDependency extends Dependency {
 		if(trigger.getStrategy().evaluate(trigger.getThreshold(), build.getResult())) {
             AbstractProject p = getDownstreamProject();
 
+            // when the last build wasn't sucessfull, we trigger dependencies always
+            AbstractProject lp = build.getProject();
+            if (null!=lp)
+            {
+			/*
+                if (null==lp.getLastBuild())
+                {
+                    logger.println("no last build");
+                }
+                else
+                {
+                    logger.println("last build="+ (lp.getLastBuild().getNumber()-1));
+                }
+                if (null==lp.getLastUnsuccessfulBuild())
+                {
+                    logger.println("no last failed build");
+                }
+                else
+                {
+                    logger.println("last failed build="+lp.getLastUnsuccessfulBuild().getNumber());
+                }
+				*/
+                if (null != lp.getLastBuild() && null != lp.getLastUnsuccessfulBuild())
+                {
+                    if (lp.getLastBuild().getNumber()-1 == (lp.getLastUnsuccessfulBuild().getNumber()))
+                    {
+//                        logger.println("last build has failed, triggering downstream projects");
+                        return true;
+                    }
+//                    else
+//                    {
+//                        logger.println("last build was OK, continue");
+//                    }
+                }
+            }
+
             // check whether local changes are needed or not
             if (trigger.isOnlyIfLocalSCMChanges())
             {
@@ -54,9 +90,11 @@ public class DownstreamDependency extends Dependency {
                 if (changes.isEmptySet())
                 {
                     // no changes - no downstream builds
-                    logger.println(Messages.DownstreamTrigger_NoSCMChanges(build.getProject().getName()));
+//                    logger.println(Messages.DownstreamTrigger_NoSCMChanges(build.getProject().getName()));
                     return false;
                 }
+//                logger.println("local SCM changes, triggering downstream builds");
+                return true;
             }
 
             // we either have local changes now, or they are not needed
