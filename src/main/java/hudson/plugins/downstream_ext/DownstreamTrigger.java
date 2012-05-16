@@ -37,6 +37,7 @@ import hudson.model.DependecyDeclarer;
 import hudson.model.DependencyGraph;
 import hudson.model.Hudson;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
 import hudson.model.Items;
 import hudson.model.Project;
 import hudson.model.Result;
@@ -171,8 +172,16 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
        	return this.matrixTrigger;
     }
 
+    /**
+     * @deprecated 
+     *      Use {@link #getChildProjects(ItemGroup)}
+     */
     public List<AbstractProject> getChildProjects() {
         return Items.fromNameList(childProjects,AbstractProject.class);
+    }
+
+    public List<AbstractProject> getChildProjects(ItemGroup context) {
+        return Items.fromNameList(context,childProjects,AbstractProject.class);
     }
     
     public Strategy getStrategy() {
@@ -193,7 +202,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
      * {@inheritDoc}
      */
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
-    	for (AbstractProject downstream : getChildProjects()) {
+        ItemGroup context = owner.getParent();
+    	for (AbstractProject downstream : getChildProjects(context)) {
     		graph.addDependency(new DownstreamDependency(owner, downstream, this));
     	}
     	
@@ -206,7 +216,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 	    		MatrixProject proj = (MatrixProject) owner;
 	    		Collection<MatrixConfiguration> activeConfigurations = proj.getActiveConfigurations();
 	    		for (MatrixConfiguration conf : activeConfigurations) {
-	    			for (AbstractProject downstream : getChildProjects()) {
+	    			for (AbstractProject downstream : getChildProjects(context)) {
 	    	    		graph.addDependency(new DownstreamDependency(conf, downstream, this));
 	    	    	}
 	    		}
@@ -305,11 +315,6 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
         @Override
 		public String getDisplayName() {
             return hudson.plugins.downstream_ext.Messages.DownstreamTrigger_DisplayName();
-        }
-
-        @Override
-        public String getHelpFile() {
-            return "/plugin/downstream-ext/help.html";
         }
 
         @Override
