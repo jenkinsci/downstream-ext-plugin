@@ -1,10 +1,8 @@
-Fork of the downstream_ext jenkins plugin. 
+This is the downstream_ext jenkins plugin. It's official homepage is 
+http://wiki.jenkins-ci.org/display/JENKINS/Downstream-Ext+Plugin
 
-It allows the additional configuration to build downstream projects only when the current project has SCM changes. 
-
-This seems to be a typical use case:
-* a code change in the local module can affect dependent modules
-* even when they contain no changes
-* but this dependency should no travel further down the dependencies
-
-Right now the downstream projects would be built only if they contain changes also, which is not what is needed in these cases.
+This plugin supports extended configuration for triggering downstream builds:
+* trigger build only if downstream job has SCM changes
+* trigger build only if current job has SCM changes
+* trigger build if upstream build result is better/equal/worse than any given result (SUCCESS, UNSTABLE, FAILURE, ABORTED)
+* Matrix (alias multi-configuration) jobs you can decide which part of the job should trigger the downstream job: parent only, configurations only or both
