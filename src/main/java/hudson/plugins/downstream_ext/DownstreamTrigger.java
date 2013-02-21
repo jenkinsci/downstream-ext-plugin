@@ -41,7 +41,6 @@ import hudson.model.Items;
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Hudson;
 import hudson.model.Job;
 import hudson.model.Project;
 import hudson.model.listeners.ItemListener;
@@ -396,7 +395,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
             public void onRenamed(Item item, String oldName, String newName) {
                 // update DownstreamTrigger of other projects that point to this object.
                 // can't we generalize this?
-                for( Project<?,?> p : Hudson.getInstance().getProjects() ) {
+                for( Project<?,?> p : Jenkins.getInstance().getAllItems(Project.class) ) {
                     DownstreamTrigger t = p.getPublishersList().get(DownstreamTrigger.class);
                     if(t!=null) {
                         if(t.onJobRenamed(oldName,newName)) {
