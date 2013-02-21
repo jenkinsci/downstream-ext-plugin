@@ -23,8 +23,8 @@ THE SOFTWARE.
 -->
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="${%Projects to build}">
-	<f:textbox name="downstreamTrigger.childProjects" value="${instance.childProjectsValue}"
+  <f:entry title="${%Projects to build}" field="childProjects">
+	<f:textbox value="${instance.childProjectsValue}"
                checkUrl="'descriptorByName/DownstreamTrigger/check?value='+encodeURIComponent(this.value)"/>
   </f:entry>
   <f:entry title="${%Build result is}" description="${%Trigger downstream job if build result meets condition}">

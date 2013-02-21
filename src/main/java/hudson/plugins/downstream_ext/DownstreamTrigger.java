@@ -25,41 +25,50 @@ package hudson.plugins.downstream_ext;
 
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
-import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixConfiguration;
+import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
+import hudson.model.AutoCompletionCandidates;
 import hudson.model.BuildListener;
 import hudson.model.DependecyDeclarer;
 import hudson.model.DependencyGraph;
-import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Items;
-import hudson.model.Project;
 import hudson.model.Result;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Hudson;
+import hudson.model.Job;
+import hudson.model.Project;
 import hudson.model.listeners.ItemListener;
 import hudson.plugins.downstream_ext.DownstreamTrigger.DescriptorImpl.ItemListenerImpl;
 import hudson.tasks.BuildStepMonitor;
-import hudson.tasks.BuildTrigger;
+import hudson.tasks.Messages;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
-
+import hudson.tasks.BuildTrigger;
+import hudson.util.FormValidation;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
@@ -292,8 +301,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 
     @Extension
     // for some reason when running mvn from commandline the build fails,
-    // if BuildTrigger is not fully qualified here!?
-    public static class DescriptorImpl extends hudson.tasks.BuildTrigger.DescriptorImpl {
+    // if the class names are not fully qualified here!?
+    public static class DescriptorImpl extends hudson.tasks.BuildStepDescriptor<hudson.tasks.Publisher> {
     	
     	public static final String[] THRESHOLD_VALUES = {
     		Result.SUCCESS.toString(), Result.UNSTABLE.toString(),
@@ -312,9 +321,55 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     	
     	public static final Strategy[] STRATEGY_VALUES = Strategy.values();
     	
+    	@Override
+        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+            return true;
+        }
+    	
         @Override
 		public String getDisplayName() {
             return hudson.plugins.downstream_ext.Messages.DownstreamTrigger_DisplayName();
+        }
+        
+        /**
+         * Form validation method.
+         */
+        public FormValidation doCheck(@AncestorInPath Item project, @QueryParameter String value ) {
+            // Require CONFIGURE permission on this project
+            if(!project.hasPermission(Item.CONFIGURE))      return FormValidation.ok();
+
+            StringTokenizer tokens = new StringTokenizer(Util.fixNull(value),",");
+            boolean hasProjects = false;
+            while(tokens.hasMoreTokens()) {
+                String projectName = tokens.nextToken().trim();
+                if (StringUtils.isNotBlank(projectName)) {
+                    Item item = Jenkins.getInstance().getItem(projectName,project,Item.class);
+                    if(item==null)
+                        return FormValidation.error(Messages.BuildTrigger_NoSuchProject(projectName,
+                                AbstractProject.findNearest(projectName,project.getParent()).getRelativeNameFrom(project)));
+                    if(!(item instanceof AbstractProject))
+                        return FormValidation.error(Messages.BuildTrigger_NotBuildable(projectName));
+                    hasProjects = true;
+                }
+            }
+            if (!hasProjects) {
+                return FormValidation.error(Messages.BuildTrigger_NoProjectSpecified());
+            }
+
+            return FormValidation.ok();
+        }
+
+        public AutoCompletionCandidates doAutoCompleteChildProjects(@QueryParameter String value) {
+            AutoCompletionCandidates candidates = new AutoCompletionCandidates();
+            List<Job> jobs = Jenkins.getInstance().getItems(Job.class);
+            for (Job job: jobs) {
+                if (job.getFullName().startsWith(value)) {
+                    if (job.hasPermission(Item.READ)) {
+                        candidates.add(job.getFullName());
+                    }
+                }
+            }
+            return candidates;
         }
 
         @Override
