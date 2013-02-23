@@ -156,6 +156,9 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     }
 
     private String resolveRegex(String projects) {
+        if (Jenkins.getInstance() == null) {
+            return projects;
+        }
         List<String> providedList = Arrays.asList(projects.split(","));
         List<String> projectsList = new ArrayList<String>();
         for (String name : providedList) {
