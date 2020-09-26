@@ -43,6 +43,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Job;
 import hudson.model.Project;
+import hudson.model.TopLevelItem;
 import hudson.model.listeners.ItemListener;
 import hudson.plugins.downstream_ext.DownstreamTrigger.DescriptorImpl.ItemListenerImpl;
 import hudson.tasks.BuildStepMonitor;
@@ -52,6 +53,8 @@ import hudson.tasks.Publisher;
 import hudson.tasks.BuildTrigger;
 import hudson.util.FormValidation;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -60,6 +63,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
@@ -80,7 +84,12 @@ import org.kohsuke.stapler.StaplerRequest;
 public class DownstreamTrigger extends Notifier implements DependecyDeclarer, MatrixAggregatable {
 
     private static final Logger LOGGER = Logger.getLogger(DownstreamTrigger.class.getName());
-    
+
+    /**
+     * Comma-separated list of other projects as specified in configuration. This could include regex names too.
+     */
+    private String specifiedChildProjects;
+
     /**
      * Comma-separated list of other projects to be scheduled.
      */
@@ -137,14 +146,37 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
             Strategy strategy, MatrixTrigger matrixTrigger) {
         if(childProjects==null)
             throw new IllegalArgumentException();
-        this.childProjects = childProjects;
+        this.specifiedChildProjects = childProjects;
+        this.childProjects = resolveRegex(childProjects);
         this.threshold = threshold;
         this.onlyIfSCMChanges = onlyIfSCMChanges;
         this.onlyIfLocalSCMChanges = onlyIfLocalSCMChanges;
         this.thresholdStrategy = strategy;
         this.matrixTrigger = matrixTrigger;
     }
-    
+
+    private String resolveRegex(String projects) {
+        if (Jenkins.getInstance() == null) {
+            return projects;
+        }
+        List<String> providedList = Arrays.asList(projects.split(","));
+        List<String> projectsList = new ArrayList<String>();
+        for (String name : providedList) {
+            Pattern pattern = Pattern.compile(name);
+            for (TopLevelItem item : Jenkins.getInstance().getItems()) {
+                String itemName = item.getName();
+                if (pattern.matcher(itemName).matches() && !projectsList.contains(item.getName())) {
+                    projectsList.add(item.getName());
+                }
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String s : projectsList) {
+            sb.append(s).append(",");
+        }
+        return sb.length() > 0 ? sb.deleteCharAt(sb.length()-1).toString() : "";
+    }
+
     private static Result resultFromString(String s) {
     	Result result = Result.fromString(s);
     	// fromString returns FAILURE for unknown strings instead of
@@ -157,7 +189,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
     }
 
     public String getChildProjectsValue() {
-        return childProjects;
+        return specifiedChildProjects;
     }
 
     public Result getThreshold() {
@@ -344,6 +376,8 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
                 if (StringUtils.isNotBlank(projectName)) {
                     Item item = Jenkins.getInstance().getItem(projectName,project,Item.class);
                     if(item==null)
+                        item = matchingItem(projectName);
+                    if (item == null)
                         return FormValidation.error(Messages.BuildTrigger_NoSuchProject(projectName,
                                 AbstractProject.findNearest(projectName,project.getParent()).getRelativeNameFrom(project)));
                     if(!(item instanceof AbstractProject))
@@ -356,6 +390,19 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
             }
 
             return FormValidation.ok();
+        }
+
+        /**
+         * Tries to find a matching project assuming name as regex expression.
+         */
+        private static TopLevelItem matchingItem(String name) {
+            Pattern pattern = Pattern.compile(name);
+            for (TopLevelItem item : Jenkins.getInstance().getItems()) {
+                if (pattern.matcher(item.getName()).matches()) {
+                    return item;
+                }
+            }
+            return null;
         }
 
         public AutoCompletionCandidates doAutoCompleteChildProjects(@QueryParameter String value) {
