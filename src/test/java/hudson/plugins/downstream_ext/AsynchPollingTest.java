@@ -80,12 +80,10 @@ public class AsynchPollingTest {
 						causeHolder[0] = cause;
 						final Runnable run = super.getPoller(p, cause, actions);
 						
-						return new Runnable() {
-							public void run() {
-								startLatch.countDown();
-								run.run();
-								endLatch.countDown();
-							}
+						return () -> {
+							startLatch.countDown();
+							run.run();
+							endLatch.countDown();
 						};
 					}
 		};
@@ -125,15 +123,13 @@ public class AsynchPollingTest {
 							List<Action> actions) {
 						final Runnable run = super.getPoller(p, cause, actions);
 						
-						return new Runnable() {
-							public void run() {
-								startLatch1.countDown();
-								run.run();
-								try {
-									endLatch1.await();
-								} catch (InterruptedException e) {
-									e.printStackTrace();
-								}
+						return () -> {
+							startLatch1.countDown();
+							run.run();
+							try {
+								endLatch1.await();
+							} catch (InterruptedException e) {
+								e.printStackTrace();
 							}
 						};
 					}
@@ -158,11 +154,9 @@ public class AsynchPollingTest {
 							List<Action> actions) {
 						final Runnable run = super.getPoller(p, cause, actions);
 						
-						return new Runnable() {
-							public void run() {
-								startLatch2.countDown();
-								run.run();
-							}
+						return () -> {
+							startLatch2.countDown();
+							run.run();
 						};
 					}
 		};
@@ -184,11 +178,9 @@ public class AsynchPollingTest {
 							List<Action> actions) {
 						final Runnable run = super.getPoller(p, cause, actions);
 						
-						return new Runnable() {
-							public void run() {
-								startLatch3.countDown();
-								run.run();
-							}
+						return () -> {
+							startLatch3.countDown();
+							run.run();
 						};
 					}
 		};
