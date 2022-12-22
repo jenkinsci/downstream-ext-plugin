@@ -345,15 +345,14 @@ public class DownstreamTrigger extends Notifier implements DependencyDeclarer, M
                 if (StringUtils.isNotBlank(projectName)) {
                     Item item = Jenkins.get().getItem(projectName,project,Item.class);
                     if(item==null)
-                        return FormValidation.error(Messages.BuildTrigger_NoSuchProject(projectName,
-                                AbstractProject.findNearest(projectName,project.getParent()).getRelativeNameFrom(project)));
+                        return FormValidation.error("There's no such project");
                     if(!(item instanceof AbstractProject))
-                        return FormValidation.error(Messages.BuildTrigger_NotBuildable(projectName));
+                        return FormValidation.error("This project is not buildable");
                     hasProjects = true;
                 }
             }
             if (!hasProjects) {
-                return FormValidation.error(Messages.BuildTrigger_NoProjectSpecified());
+                return FormValidation.error("No project specified");
             }
 
             return FormValidation.ok();

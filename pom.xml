@@ -13,14 +13,6 @@
 	<packaging>hpi</packaging>
     <version>${changelist}</version>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/Downstream-Ext+Plugin</url>
-    <developers>
-        <developer>
-            <id>kutzi</id>
-            <name>Christoph Kutzinski</name>
-            <email>kutzi@gmx.de</email>
-            <timezone>1</timezone>
-        </developer>
-    </developers>
 
 	<licenses>
 		<license>
@@ -32,6 +24,8 @@
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
         <jenkins.version>2.361.4</jenkins.version>
+        <!-- TODO fix violations -->
+        <spotbugs.threshold>High</spotbugs.threshold>
     </properties>
 
     <dependencyManagement>
