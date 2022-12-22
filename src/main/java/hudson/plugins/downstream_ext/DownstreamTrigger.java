@@ -61,6 +61,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jenkins.model.DependencyDeclarer;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
@@ -77,7 +78,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * but has changed significantly in the mean time.
  */
 @SuppressWarnings("rawtypes")
-public class DownstreamTrigger extends Notifier implements DependecyDeclarer, MatrixAggregatable {
+public class DownstreamTrigger extends Notifier implements DependencyDeclarer, MatrixAggregatable {
 
     private static final Logger LOGGER = Logger.getLogger(DownstreamTrigger.class.getName());
     
@@ -116,7 +117,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 	/**
 	 * Defines when to trigger downstream builds for matrix upstream jobs.
 	 * 
-	 * @see {@link MatrixTrigger}
+	 * @see MatrixTrigger
 	 * @since 1.6
 	 */
 	private MatrixTrigger matrixTrigger;
@@ -342,17 +343,16 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
             while(tokens.hasMoreTokens()) {
                 String projectName = tokens.nextToken().trim();
                 if (StringUtils.isNotBlank(projectName)) {
-                    Item item = Jenkins.getInstance().getItem(projectName,project,Item.class);
+                    Item item = Jenkins.get().getItem(projectName,project,Item.class);
                     if(item==null)
-                        return FormValidation.error(Messages.BuildTrigger_NoSuchProject(projectName,
-                                AbstractProject.findNearest(projectName,project.getParent()).getRelativeNameFrom(project)));
+                        return FormValidation.error("There's no such project");
                     if(!(item instanceof AbstractProject))
-                        return FormValidation.error(Messages.BuildTrigger_NotBuildable(projectName));
+                        return FormValidation.error("This project is not buildable");
                     hasProjects = true;
                 }
             }
             if (!hasProjects) {
-                return FormValidation.error(Messages.BuildTrigger_NoProjectSpecified());
+                return FormValidation.error("No project specified");
             }
 
             return FormValidation.ok();
@@ -360,7 +360,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
 
         public AutoCompletionCandidates doAutoCompleteChildProjects(@QueryParameter String value) {
             AutoCompletionCandidates candidates = new AutoCompletionCandidates();
-            List<Job> jobs = Jenkins.getInstance().getItems(Job.class);
+            List<Job> jobs = Jenkins.get().getItems(Job.class);
             for (Job job: jobs) {
                 if (job.getFullName().startsWith(value)) {
                     if (job.hasPermission(Item.READ)) {
@@ -395,7 +395,7 @@ public class DownstreamTrigger extends Notifier implements DependecyDeclarer, Ma
             public void onRenamed(Item item, String oldName, String newName) {
                 // update DownstreamTrigger of other projects that point to this object.
                 // can't we generalize this?
-                for( Project<?,?> p : Jenkins.getInstance().getAllItems(Project.class) ) {
+                for( Project<?,?> p : Jenkins.get().getAllItems(Project.class) ) {
                     DownstreamTrigger t = p.getPublishersList().get(DownstreamTrigger.class);
                     if(t!=null) {
                         if(t.onJobRenamed(oldName,newName)) {

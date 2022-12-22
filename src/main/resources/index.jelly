@@ -1,8 +1,4 @@
-<!--
-  This view is used to render the plugin list page.
-
-  Since we don't really have anything dynamic here, let's just use static HTML. 
--->
+<?jelly escape-by-default='true'?>
 <div>
   This plugin provides extended options for triggering downstream projects.
 </div>
