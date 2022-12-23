@@ -1,0 +1,8 @@
+This is the downstream_ext jenkins plugin. It's official homepage is 
+http://wiki.jenkins-ci.org/display/JENKINS/Downstream-Ext+Plugin
+
+This plugin supports extended configuration for triggering downstream builds:
+* trigger build only if downstream job has SCM changes
+* trigger build only if current job has SCM changes
+* trigger build if upstream build result is better/equal/worse than any given result (SUCCESS, UNSTABLE, FAILURE, ABORTED)
+* Matrix (alias multi-configuration) jobs you can decide which part of the job should trigger the downstream job: parent only, configurations only or both

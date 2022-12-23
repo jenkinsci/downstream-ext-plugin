@@ -46,6 +46,19 @@ public class DownstreamDependency extends Dependency {
 		if(trigger.getStrategy().evaluate(trigger.getThreshold(), build.getResult())) {
             AbstractProject p = getDownstreamProject();
 
+            // when the last build wasn't sucessfull, we trigger dependencies always
+            AbstractProject lp = build.getProject();
+            if (null!=lp)
+            {
+                if (null != lp.getLastBuild() && null != lp.getLastUnsuccessfulBuild())
+                {
+                    if (lp.getLastBuild().getNumber()-1 == (lp.getLastUnsuccessfulBuild().getNumber()))
+                    {
+                        return true;
+                    }
+                }
+            }
+
             // check whether local changes are needed or not
             if (trigger.isOnlyIfLocalSCMChanges())
             {
@@ -54,9 +67,9 @@ public class DownstreamDependency extends Dependency {
                 if (changes.isEmptySet())
                 {
                     // no changes - no downstream builds
-                    logger.println(Messages.DownstreamTrigger_NoSCMChanges(build.getProject().getName()));
                     return false;
                 }
+                return true;
             }
 
             // we either have local changes now, or they are not needed
